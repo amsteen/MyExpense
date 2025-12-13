@@ -1,0 +1,1571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Tracker - Home Edition</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --light-color: #ecf0f1;
+            --dark-color: #2c3e50;
+            --gray-color: #7f8c8d;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+            padding: 10px;
+            max-width: 1200px;
+            margin: 0 auto;
+            direction: ltr;
+        }
+
+        /* Arabic text styling - ALL BOLD - UPDATED FOR REPORTS */
+        .arabic-text {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-weight: bold !important;
+            direction: rtl;
+        }
+
+        /* Bold Arabic font for all Arabic text */
+        [lang="ar"], [dir="rtl"] {
+            font-weight: bold !important;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+        }
+
+        /* Report table Arabic text - NEW STYLE */
+        .report-arabic {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+            font-weight: bold !important;
+            direction: rtl;
+        }
+
+        /* Arabic text in chart - NEW STYLE */
+        .chart-arabic {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+            font-weight: bold !important;
+        }
+
+        /* Header and main screen */
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--primary-color);
+        }
+
+        .header h1 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+            font-size: 1.8rem;
+        }
+
+        /* Main screen with 4 values */
+        .main-screen {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .balance-card {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 20px 15px;
+            box-shadow: var(--box-shadow);
+            text-align: center;
+            transition: var(--transition);
+            border-top: 4px solid var(--secondary-color);
+        }
+
+        .balance-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .balance-card:nth-child(2) {
+            border-top-color: var(--success-color);
+        }
+
+        .balance-card:nth-child(3) {
+            border-top-color: var(--warning-color);
+        }
+
+        .balance-card:nth-child(4) {
+            border-top-color: var(--accent-color);
+        }
+
+        .balance-card h3 {
+            font-size: 0.9rem;
+            color: var(--gray-color);
+            margin-bottom: 10px;
+        }
+
+        .balance-card .amount {
+            font-size: 1.6rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .positive {
+            color: var(--success-color) !important;
+        }
+
+        .negative {
+            color: var(--accent-color) !important;
+        }
+
+        /* Main menu buttons */
+        .main-menu {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .main-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            padding: 15px 10px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .main-btn i {
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+        }
+
+        .main-btn:hover {
+            background-color: var(--secondary-color);
+            transform: translateY(-3px);
+        }
+
+        .main-btn.active {
+            background-color: var(--secondary-color);
+            box-shadow: 0 6px 12px rgba(52, 152, 219, 0.3);
+        }
+
+        /* Submenu container */
+        .submenu-container {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 20px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .submenu-container.active {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .submenu-title {
+            font-size: 1.4rem;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        /* Form styling */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            transition: var(--transition);
+        }
+
+        .form-control:focus {
+            border-color: var(--secondary-color);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        /* Action buttons */
+        .action-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+
+        .btn-success {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #219653;
+        }
+
+        .btn-danger {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+
+        .btn-warning {
+            background-color: var(--warning-color);
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background-color: #e67e22;
+        }
+
+        .btn-info {
+            background-color: var(--gray-color);
+            color: white;
+        }
+
+        .btn-info:hover {
+            background-color: #6c7b7d;
+        }
+
+        /* Navigation buttons */
+        .nav-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .nav-btn {
+            padding: 8px 15px;
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .nav-btn:hover {
+            background-color: #e9ecef;
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Data management section */
+        .data-management {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #eee;
+        }
+
+        .data-management .submenu-title {
+            grid-column: 1 / -1;
+        }
+
+        /* PDF date range controls */
+        .pdf-date-range {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 15px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: var(--border-radius);
+            border: 1px solid #e9ecef;
+        }
+
+        .pdf-date-range h4 {
+            grid-column: 1 / -1;
+            margin-bottom: 10px;
+            color: var(--primary-color);
+            font-size: 1.1rem;
+        }
+
+        /* Reports section */
+        .report-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .chart-container {
+            height: 300px;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: bold;
+        }
+
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+
+        /* Group header in reports table */
+        .group-header {
+            font-weight: bold;
+            font-size: 1.1rem;
+            border-left: 5px solid;
+        }
+
+        .group-total {
+            font-weight: bold;
+            background-color: #f8f9fa;
+        }
+
+        /* Settings section */
+        .settings-section {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .settings-section h3 {
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+
+        /* Transfer list table */
+        .transfers-list {
+            margin-top: 30px;
+            border-top: 2px solid #eee;
+            padding-top: 20px;
+        }
+
+        .transfers-list h3 {
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+
+        /* Sync status indicator */
+        .sync-status {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 10px 15px;
+            border-radius: var(--border-radius);
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: var(--box-shadow);
+            z-index: 1000;
+        }
+
+        .sync-status.online {
+            background-color: var(--success-color);
+        }
+
+        .sync-status.offline {
+            background-color: var(--accent-color);
+        }
+
+        .sync-status.syncing {
+            background-color: var(--warning-color);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .main-screen {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .main-menu {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            
+            .main-btn {
+                font-size: 0.9rem;
+                padding: 12px 5px;
+            }
+            
+            .main-btn i {
+                font-size: 1.2rem;
+            }
+            
+            .data-management {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .pdf-date-range {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .sync-status {
+                bottom: 10px;
+                right: 10px;
+                font-size: 0.8rem;
+                padding: 8px 12px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .main-screen {
+                grid-template-columns: 1fr;
+            }
+            
+            .main-menu {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .data-management {
+                grid-template-columns: 1fr;
+            }
+            
+            .pdf-date-range {
+                grid-template-columns: 1fr;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
+
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: var(--border-radius);
+            color: white;
+            font-weight: bold;
+            z-index: 1000;
+            box-shadow: var(--box-shadow);
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: opacity 0.3s, transform 0.3s;
+        }
+
+        .notification.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .notification.success {
+            background-color: var(--success-color);
+        }
+
+        .notification.error {
+            background-color: var(--accent-color);
+        }
+
+        .notification.info {
+            background-color: var(--secondary-color);
+        }
+
+        /* Modal for confirmation */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: var(--border-radius);
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1><i class="fas fa-chart-line"></i> Financial Tracker - Home Edition</h1>
+        <p class="arabic-text" dir="rtl" lang="ar">تطبيق متكامل لتتبع المصاريف والدخل والتحويلات المالية</p>
+    </div>
+
+    <div class="main-screen">
+        <div class="balance-card">
+            <h3>OVERALL NET BALANCE</h3>
+            <div class="amount" id="net-balance">$0.00</div>
+        </div>
+        <div class="balance-card">
+            <h3>Balance (safe1)</h3>
+            <div class="amount" id="balance-safe1">$0.00</div>
+        </div>
+        <div class="balance-card">
+            <h3>Balance (safe2)</h3>
+            <div class="amount" id="balance-safe2">$0.00</div>
+        </div>
+        <div class="balance-card">
+            <h3>Total Expenses (All Safes)</h3>
+            <div class="amount" id="total-expenses">$0.00</div>
+        </div>
+    </div>
+
+    <div class="main-menu">
+        <button class="main-btn active" data-submenu="expense">
+            <i class="fas fa-money-bill-wave"></i>
+            <span>Expense</span>
+        </button>
+        <button class="main-btn" data-submenu="income">
+            <i class="fas fa-hand-holding-usd"></i>
+            <span>Income</span>
+        </button>
+        <button class="main-btn" data-submenu="transfer">
+            <i class="fas fa-exchange-alt"></i>
+            <span>Transfer</span>
+        </button>
+        <button class="main-btn" data-submenu="reports">
+            <i class="fas fa-chart-pie"></i>
+            <span>Reports</span>
+        </button>
+        <button class="main-btn" data-submenu="settings">
+            <i class="fas fa-cog"></i>
+            <span>Settings</span>
+        </button>
+    </div>
+
+    <div class="submenu-container active" id="expense-submenu">
+        <h2 class="submenu-title"><i class="fas fa-money-bill-wave"></i> Expense Management</h2>
+        
+        <div class="action-buttons">
+            <button class="btn btn-primary" id="expense-new">
+                <i class="fas fa-plus"></i> New
+            </button>
+            <button class="btn btn-success" id="expense-save">
+                <i class="fas fa-save"></i> Save
+            </button>
+            <button class="btn btn-danger" id="expense-delete">
+                <i class="fas fa-trash"></i> Delete
+            </button>
+            <div style="display: flex; gap: 10px; margin-left: auto;">
+                <button class="nav-btn" id="expense-prev">
+                    <i class="fas fa-chevron-left"></i> Prev
+                </button>
+                <button class="nav-btn" id="expense-next">
+                    Next <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="expense-number">Number</label>
+                <input type="text" id="expense-number" class="form-control" readonly>
+            </div>
+            <div class="form-group">
+                <label for="expense-date">Date</label>
+                <input type="date" id="expense-date" class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="expense-value">Value</label>
+                <input type="number" id="expense-value" class="form-control" step="0.01" min="0" value="2400">
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="expense-main-type">Main Expense Type</label>
+                <input type="text" id="expense-main-type" class="form-control arabic-text" list="expense-main-types" value="مصاريف عمارة" dir="rtl">
+                <datalist id="expense-main-types">
+                    <option class="arabic-text" value="مصاريف عمارة"></option>
+                    <option class="arabic-text" value="فواتير"></option>
+                    <option class="arabic-text" value="مواصلات"></option>
+                    <option class="arabic-text" value="تسوق"></option>
+                    <option class="arabic-text" value="صحة"></option>
+                    <option class="arabic-text" value="تعليم"></option>
+                </datalist>
+            </div>
+            <div class="form-group">
+                <label for="expense-sub-type">Sub Expense Type</label>
+                <input type="text" id="expense-sub-type" class="form-control arabic-text" list="expense-sub-types" value="تخليف" dir="rtl">
+                <datalist id="expense-sub-types">
+                    <option class="arabic-text" value="تخليف"></option>
+                    <option class="arabic-text" value="كهرباء"></option>
+                    <option class="arabic-text" value="ماء"></option>
+                    <option class="arabic-text" value="غاز"></option>
+                    <option class="arabic-text" value="إنترنت"></option>
+                </datalist>
+            </div>
+            <div class="form-group">
+                <label for="expense-safe">Safe</label>
+                <select id="expense-safe" class="form-control">
+                    <option value="">Select Safe</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="submenu-container" id="income-submenu">
+        <h2 class="submenu-title"><i class="fas fa-hand-holding-usd"></i> Income Management</h2>
+        
+        <div class="action-buttons">
+            <button class="btn btn-primary" id="income-new">
+                <i class="fas fa-plus"></i> New
+            </button>
+            <button class="btn btn-success" id="income-save">
+                <i class="fas fa-save"></i> Save
+            </button>
+            <button class="btn btn-danger" id="income-delete">
+                <i class="fas fa-trash"></i> Delete
+            </button>
+            <div style="display: flex; gap: 10px; margin-left: auto;">
+                <button class="nav-btn" id="income-prev">
+                    <i class="fas fa-chevron-left"></i> Prev
+                </button>
+                <button class="nav-btn" id="income-next">
+                    Next <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="income-number">Number</label>
+                <input type="text" id="income-number" class="form-control" readonly>
+            </div>
+            <div class="form-group">
+                <label for="income-date">Date</label>
+                <input type="date" id="income-date" class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="income-value">Value</label>
+                <input type="number" id="income-value" class="form-control" step="0.01" min="0">
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="income-main-type">Main Income Type</label>
+                <input type="text" id="income-main-type" class="form-control" list="income-main-types">
+                <datalist id="income-main-types"></datalist>
+            </div>
+            <div class="form-group">
+                <label for="income-sub-type">Sub Income Type</label>
+                <input type="text" id="income-sub-type" class="form-control" list="income-sub-types">
+                <datalist id="income-sub-types"></datalist>
+            </div>
+            <div class="form-group">
+                <label for="income-safe">Safe</label>
+                <select id="income-safe" class="form-control">
+                    <option value="">Select Safe</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="submenu-container" id="transfer-submenu">
+        <h2 class="submenu-title"><i class="fas fa-exchange-alt"></i> Transfer Management</h2>
+        
+        <div class="action-buttons">
+            <button class="btn btn-primary" id="transfer-new">
+                <i class="fas fa-plus"></i> New
+            </button>
+            <button class="btn btn-success" id="transfer-save">
+                <i class="fas fa-save"></i> Save
+            </button>
+            <button class="btn btn-danger" id="transfer-delete">
+                <i class="fas fa-trash"></i> Delete
+            </button>
+            <div style="display: flex; gap: 10px; margin-left: auto;">
+                <button class="nav-btn" id="transfer-prev">
+                    <i class="fas fa-chevron-left"></i> Prev
+                </button>
+                <button class="nav-btn" id="transfer-next">
+                    Next <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="transfer-date">Date</label>
+                <input type="date" id="transfer-date" class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="transfer-from">Transfer From Safe</label>
+                <select id="transfer-from" class="form-control">
+                    <option value="">Select Safe</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="transfer-to">Transfer To Safe</label>
+                <select id="transfer-to" class="form-control">
+                    <option value="">Select Safe</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="transfer-value">Transfer Value</label>
+                <input type="number" id="transfer-value" class="form-control" step="0.01" min="0">
+            </div>
+        </div>
+        
+        <div class="transfers-list">
+            <h3><i class="fas fa-list"></i> All Transfers</h3>
+            <div class="table-container">
+                <table id="transfers-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>From Safe</th>
+                            <th>To Safe</th>
+                            <th>Value</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transfers-table-body">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="submenu-container" id="reports-submenu">
+        <h2 class="submenu-title"><i class="fas fa-chart-pie"></i> Reports</h2>
+        
+        <div class="report-controls">
+            <div class="form-group">
+                <label for="report-from-date">From Date</label>
+                <input type="date" id="report-from-date" class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="report-to-date">To Date</label>
+                <input type="date" id="report-to-date" class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="report-main-type">Main Type</label>
+                <select id="report-main-type" class="form-control">
+                    <option value="">All Types</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="report-sub-type">Sub Type</label>
+                <select id="report-sub-type" class="form-control">
+                    <option value="">All Sub Types</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="action-buttons">
+            <button class="btn btn-primary" id="report-expense">
+                <i class="fas fa-money-bill-wave"></i> Expense Report
+            </button>
+            <button class="btn btn-success" id="report-income">
+                <i class="fas fa-hand-holding-usd"></i> Income Report
+            </button>
+            <button class="btn btn-info" id="report-clear">
+                <i class="fas fa-broom"></i> Clear
+            </button>
+        </div>
+        
+        <div class="chart-container">
+            <canvas id="report-chart"></canvas>
+        </div>
+        
+        <div class="table-container">
+            <table id="report-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Main Type</th>
+                        <th>Sub Type</th>
+                        <th>Safe</th>
+                        <th>Value</th>
+                    </tr>
+                </thead>
+                <tbody id="report-table-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="submenu-container" id="settings-submenu">
+        <h2 class="submenu-title"><i class="fas fa-cog"></i> Settings</h2>
+        
+        <div class="settings-section">
+            <h3><i class="fas fa-vault"></i> Safes Management</h3>
+            
+            <div class="action-buttons">
+                <button class="btn btn-primary" id="safe-new">
+                    <i class="fas fa-plus"></i> New
+                </button>
+                <button class="btn btn-success" id="safe-save">
+                    <i class="fas fa-save"></i> Save
+                </button>
+                <button class="btn btn-danger" id="safe-delete">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
+                <div style="display: flex; gap: 10px; margin-left: auto;">
+                    <button class="nav-btn" id="safe-prev">
+                        <i class="fas fa-chevron-left"></i> Prev
+                    </button>
+                    <button class="nav-btn" id="safe-next">
+                        Next <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="safe-name">Safe Name</label>
+                    <input type="text" id="safe-name" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="safe-initial-balance">Initial Balance</label>
+                    <input type="number" id="safe-initial-balance" class="form-control" step="0.01" value="0">
+                </div>
+                <div class="form-group">
+                    <label for="safe-current-balance">Current Balance (Read Only)</label>
+                    <input type="number" id="safe-current-balance" class="form-control" step="0.01" value="0" readonly>
+                </div>
+            </div>
+            <div class="table-container">
+                <table id="safes-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody id="safes-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="settings-section">
+            <h3><i class="fas fa-tags"></i> Expense and Income Types</h3>
+            <div class="form-row" style="grid-template-columns: 1fr 1fr;">
+                <div class="form-group">
+                    <label for="expense-types-list">Expense Types (Main & Sub)</label>
+                    <textarea id="expense-types-list" class="form-control arabic-text" rows="5" placeholder="Enter expense types separated by commas (مصاريف عمارة, فواتير, مواصلات, etc.)" dir="rtl"></textarea>
+                    <button class="btn btn-info" id="save-expense-types" style="margin-top: 10px; width: 100%;">
+                        <i class="fas fa-save"></i> Save Expense Types
+                    </button>
+                </div>
+                <div class="form-group">
+                    <label for="income-types-list">Income Types (Main & Sub)</label>
+                    <textarea id="income-types-list" class="form-control arabic-text" rows="5" placeholder="Enter income types separated by commas (راتب, ايجار, استثمار, etc.)" dir="rtl"></textarea>
+                    <button class="btn btn-info" id="save-income-types" style="margin-top: 10px; width: 100%;">
+                        <i class="fas fa-save"></i> Save Income Types
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="settings-section">
+            <h3><i class="fas fa-coins"></i> Currency Setting</h3>
+            <div class="form-group" style="max-width: 300px;">
+                <label for="currency-symbol">Currency Symbol (e.g., $, SAR, £)</label>
+                <input type="text" id="currency-symbol" class="form-control" maxlength="5">
+            </div>
+            <button class="btn btn-info" id="save-currency-settings">
+                <i class="fas fa-save"></i> Save Currency
+            </button>
+        </div>
+
+        <div class="data-management">
+            <h2 class="submenu-title" style="grid-column: 1 / -1;"><i class="fas fa-database"></i> Data Management & Sync</h2>
+            
+            <button class="btn btn-success" id="sync-now-btn" style="grid-column: span 2;">
+                <i class="fas fa-sync-alt"></i> Force Sync Now
+            </button>
+            <button class="btn btn-warning" id="backup-btn">
+                <i class="fas fa-download"></i> Backup Data
+            </button>
+            <button class="btn btn-info" id="restore-btn">
+                <i class="fas fa-upload"></i> Restore Data
+            </button>
+            <input type="file" id="restore-file" accept=".json" style="display: none;">
+            <button class="btn btn-danger" id="reset-data-btn">
+                <i class="fas fa-eraser"></i> Reset All Data
+            </button>
+
+            <div class="pdf-date-range">
+                <h4>PDF Export Date Range</h4>
+                <div class="form-group">
+                    <label for="pdf-from-date">From Date</label>
+                    <input type="date" id="pdf-from-date" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="pdf-to-date">To Date</label>
+                    <input type="date" id="pdf-to-date" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="pdf-report-type">Report Type</label>
+                    <select id="pdf-report-type" class="form-control">
+                        <option value="all">All Transactions</option>
+                        <option value="expense">Expenses Only</option>
+                        <option value="income">Income Only</option>
+                        <option value="transfer">Transfers Only</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label style="visibility: hidden;">Generate PDF</label>
+                    <button class="btn btn-primary" id="generate-pdf-btn" style="width: 100%;">
+                        <i class="fas fa-file-pdf"></i> Generate PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="notification" class="notification"></div>
+
+    <div class="sync-status offline" id="sync-status">
+        <i class="fas fa-circle-notch fa-spin" id="sync-status-icon"></i>
+        <span id="sync-status-text">Offline</span>
+    </div>
+
+    <div id="confirm-modal" class="modal">
+        <div class="modal-content">
+            <h3 id="modal-title">Confirm Action</h3>
+            <p id="modal-message" style="margin-top: 15px;"></p>
+            <div class="modal-buttons">
+                <button class="btn btn-info" id="modal-cancel">Cancel</button>
+                <button class="btn btn-danger" id="modal-confirm">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Supabase Setup ---
+        const SUPABASE_URL = 'YOUR_SUPABASE_URL'; // Replace with your URL
+        const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY'; // Replace with your Anon Key
+
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        
+        // --- Global State ---
+        // deviceId removed as records are now shared
+        const appState = { currentExpenseIndex: -1, currentIncomeIndex: -1, currentTransferIndex: -1, currentSafeIndex: -1, chart: null, chartColors: {}, currency: '$', isOnline: false, isSyncing: false, lastSync: null };
+        
+        // Update sync status display function
+        function updateSyncStatus() {
+            const syncStatus = document.getElementById('sync-status');
+            const syncStatusText = document.getElementById('sync-status-text');
+
+            if (appState.isSyncing) {
+                syncStatus.className = 'sync-status syncing';
+                syncStatusText.textContent = 'Syncing...';
+            } else if (appState.isOnline) {
+                syncStatus.className = 'sync-status online';
+                syncStatusText.textContent = 'Online';
+                if (appState.lastSync) {
+                    const timeDiff = Math.floor((Date.now() - appState.lastSync) / 1000);
+                    if (timeDiff < 60) {
+                        syncStatusText.textContent = `Synced ${timeDiff}s ago`;
+                    } else if (timeDiff < 3600) {
+                        syncStatusText.textContent = `Synced ${Math.floor(timeDiff / 60)}m ago`;
+                    } else {
+                        syncStatusText.textContent = `Synced ${Math.floor(timeDiff / 3600)}h ago`;
+                    }
+                }
+            } else {
+                syncStatus.className = 'sync-status offline';
+                syncStatusText.textContent = 'Offline';
+            }
+        }
+
+        // Check network status function
+        function checkNetworkStatus() {
+            appState.isOnline = navigator.onLine;
+            updateSyncStatus();
+            if (appState.isOnline) {
+                // Try to sync when coming online
+                setTimeout(() => {
+                    syncAllData();
+                }, 2000);
+            }
+        }
+
+        // Function to detect if text contains Arabic characters
+        function isArabicText(text) {
+            if (!text) return false;
+            // Arabic Unicode range
+            const arabicRegex = /[\u0600-\u06FF]/;
+            return arabicRegex.test(text);
+        }
+
+        // Function to apply formatting
+        function formatCurrency(value) {
+            const num = parseFloat(value);
+            if (isNaN(num)) return `${appState.currency}0.00`;
+            return `${appState.currency}${num.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
+        }
+
+        // --- Core Data Management Functions ---
+
+        // Initialize localStorage with default data if empty
+        function initLocalStorage() {
+            console.log("Initializing localStorage...");
+            
+            // Currency
+            if (!localStorage.getItem('currency')) {
+                localStorage.setItem('currency', '$');
+                console.log("Currency set to default: $");
+            }
+            
+            // Safes
+            if (!localStorage.getItem('financialSafes')) {
+                // REMOVED device_id
+                const defaultSafes = [
+                    { id: 1, name: 'Home Safe', balance: 10250.00, synced: false },
+                    { id: 2, name: 'Bank Account', balance: 5000.00, synced: false },
+                    { id: 3, name: 'Cash Wallet', balance: 500.00, synced: false }
+                ];
+                localStorage.setItem('financialSafes', JSON.stringify(defaultSafes));
+                console.log("Default safes created");
+            }
+
+            // Expense types
+            if (!localStorage.getItem('expenseTypes')) {
+                const defaultExpenseTypes = ['مصاريف عمارة', 'فواتير', 'مواصلات', 'تسوق', 'صحة', 'تعليم'];
+                localStorage.setItem('expenseTypes', JSON.stringify(defaultExpenseTypes));
+                console.log("Default expense types created");
+            }
+
+            // Expense sub-types
+            if (!localStorage.getItem('expenseSubTypes')) {
+                const defaultExpenseSubTypes = ['تخليف', 'كهرباء', 'ماء', 'غاز', 'إنترنت'];
+                localStorage.setItem('expenseSubTypes', JSON.stringify(defaultExpenseSubTypes));
+                console.log("Default expense sub-types created");
+            }
+
+            // Income types
+            if (!localStorage.getItem('incomeTypes')) {
+                const defaultIncomeTypes = ['راتب', 'إيجار', 'استثمار', 'هدايا', 'عمل إضافي'];
+                localStorage.setItem('incomeTypes', JSON.stringify(defaultIncomeTypes));
+                console.log("Default income types created");
+            }
+
+            // Income sub-types
+            if (!localStorage.getItem('incomeSubTypes')) {
+                const defaultIncomeSubTypes = ['راتب شهري', 'مكافأة', 'أرباح أسهم', 'بيع سلعة'];
+                localStorage.setItem('incomeSubTypes', JSON.stringify(defaultIncomeSubTypes));
+                console.log("Default income sub-types created");
+            }
+
+            // Transactions (empty lists)
+            if (!localStorage.getItem('expenses')) {
+                localStorage.setItem('expenses', '[]');
+            }
+            if (!localStorage.getItem('incomes')) {
+                localStorage.setItem('incomes', '[]');
+            }
+            if (!localStorage.getItem('transfers')) {
+                localStorage.setItem('transfers', '[]');
+            }
+        }
+
+        // Load data from Supabase
+        async function loadFromSupabase() {
+            if (!appState.isOnline) {
+                console.log("Cannot load from Supabase: Offline.");
+                return;
+            }
+
+            appState.isSyncing = true;
+            updateSyncStatus();
+            console.log("Starting load from Supabase...");
+
+            try {
+                // Fetch Expenses
+                // REMOVED .eq('device_id', appState.deviceId)
+                let { data: expensesData, error: expensesError } = await supabase.from('expense').select('*');
+                if (expensesError) throw expensesError;
+                localStorage.setItem('expenses', JSON.stringify(expensesData));
+
+                // Fetch Incomes
+                // REMOVED .eq('device_id', appState.deviceId)
+                let { data: incomesData, error: incomesError } = await supabase.from('income').select('*');
+                if (incomesError) throw incomesError;
+                localStorage.setItem('incomes', JSON.stringify(incomesData));
+
+                // Fetch Safes
+                // REMOVED .eq('device_id', appState.deviceId)
+                let { data: safesData, error: safesError } = await supabase.from('safe').select('*');
+                if (safesError) throw safesError;
+                localStorage.setItem('financialSafes', JSON.stringify(safesData));
+
+                // Fetch Transfers
+                // REMOVED .eq('device_id', appState.deviceId)
+                let { data: transfersData, error: transfersError } = await supabase.from('transfer').select('*');
+                if (transfersError) throw transfersError;
+                localStorage.setItem('transfers', JSON.stringify(transfersData));
+
+                appState.lastSync = Date.now();
+                showNotification('Data loaded from cloud successfully!', 'success');
+                console.log("Data loaded from cloud successfully");
+
+            } catch (error) {
+                console.error("Error loading data from Supabase:", error);
+                showNotification('Error loading data from cloud: ' + error.message, 'error');
+            } finally {
+                appState.isSyncing = false;
+                updateSyncStatus();
+            }
+        }
+
+        // Sync local changes to Supabase
+        async function syncToSupabase() {
+            if (!appState.isOnline) {
+                console.log("Cannot sync to Supabase: Offline.");
+                return;
+            }
+
+            appState.isSyncing = true;
+            updateSyncStatus();
+            console.log("Starting sync to Supabase...");
+            let syncedCount = 0;
+
+            try {
+                // 1. Sync Expenses
+                let expenses = JSON.parse(localStorage.getItem('expenses') || '[]');
+                for (let i = 0; i < expenses.length; i++) {
+                    if (!expenses[i].synced) {
+                        if (await syncExpenseToSupabase(expenses[i])) {
+                            expenses[i].synced = true;
+                            syncedCount++;
+                        }
+                    }
+                }
+                localStorage.setItem('expenses', JSON.stringify(expenses));
+                
+                // 2. Sync Incomes
+                let incomes = JSON.parse(localStorage.getItem('incomes') || '[]');
+                for (let i = 0; i < incomes.length; i++) {
+                    if (!incomes[i].synced) {
+                        if (await syncIncomeToSupabase(incomes[i])) {
+                            incomes[i].synced = true;
+                            syncedCount++;
+                        }
+                    }
+                }
+                localStorage.setItem('incomes', JSON.stringify(incomes));
+
+                // 3. Sync Safes
+                let safes = JSON.parse(localStorage.getItem('financialSafes') || '[]');
+                for (let i = 0; i < safes.length; i++) {
+                    if (!safes[i].synced) {
+                        if (await syncSafeToSupabase(safes[i])) {
+                            safes[i].synced = true;
+                            syncedCount++;
+                        }
+                    }
+                }
+                localStorage.setItem('financialSafes', JSON.stringify(safes));
+
+                // 4. Sync Transfers
+                let transfers = JSON.parse(localStorage.getItem('transfers') || '[]');
+                for (let i = 0; i < transfers.length; i++) {
+                    if (!transfers[i].synced) {
+                        if (await syncTransferToSupabase(transfers[i])) {
+                            transfers[i].synced = true;
+                            syncedCount++;
+                        }
+                    }
+                }
+                localStorage.setItem('transfers', JSON.stringify(transfers));
+
+                if (syncedCount > 0) {
+                    appState.lastSync = Date.now();
+                    showNotification(`Sync complete! ${syncedCount} records sent to cloud.`, 'success');
+                    console.log(`Sync complete. ${syncedCount} records updated.`);
+                } else {
+                    console.log("No new local changes to sync.");
+                }
+
+            } catch (error) {
+                console.error("Error during sync process:", error);
+                showNotification('Error during sync: ' + error.message, 'error');
+            } finally {
+                appState.isSyncing = false;
+                updateSyncStatus();
+            }
+        }
+
+        // Individual Sync Functions (Used by syncToSupabase)
+
+        async function syncExpenseToSupabase(expense) {
+            try {
+                // REMOVED device_id from upsert object and onConflict clause
+                const { data, error } = await supabase
+                    .from('expense')
+                    .upsert({ date: expense.date, mainType: expense.mainType, subType: expense.subType, value: expense.value, safe: expense.safe }, { onConflict: 'date,mainType,subType,value,safe' });
+                
+                if (error) throw error;
+                return true;
+            } catch (error) {
+                console.error("Error syncing expense:", error);
+                return false;
+            }
+        }
+
+        async function syncIncomeToSupabase(income) {
+            try {
+                // REMOVED device_id from upsert object and onConflict clause
+                const { data, error } = await supabase
+                    .from('income')
+                    .upsert({ date: income.date, mainType: income.mainType, subType: income.subType, value: income.value, safe: income.safe }, { onConflict: 'date,mainType,subType,value,safe' });
+                
+                if (error) throw error;
+                return true;
+            } catch (error) {
+                console.error("Error syncing income:", error);
+                return false;
+            }
+        }
+
+        async function syncSafeToSupabase(safe) {
+            try {
+                // REMOVED device_id from upsert object and onConflict clause
+                const { data, error } = await supabase
+                    .from('safe')
+                    .upsert({ id: safe.id, name: safe.name, balance: safe.balance }, { onConflict: 'name' });
+                
+                if (error) throw error;
+                return true;
+            } catch (error) {
+                console.error("Error syncing safe:", error);
+                return false;
+            }
+        }
+
+        async function syncTransferToSupabase(transfer) {
+            try {
+                // REMOVED device_id from upsert object and onConflict clause
+                const { data, error } = await supabase
+                    .from('transfer')
+                    .upsert({ date: transfer.date, from_safe: transfer.from, to_safe: transfer.to, value: transfer.value }, { onConflict: 'date,fromSafe,toSafe,value' });
+                
+                if (error) throw error;
+                return true;
+            } catch (error) {
+                console.error("Error syncing transfer:", error);
+                return false;
+            }
+        }
+        
+        // Combined sync function (load all from cloud, then sync local changes to cloud)
+        async function syncAllData() {
+            await loadFromSupabase();
+            await syncToSupabase();
+            // Re-load and re-render everything after a sync to reflect shared changes immediately
+            loadAllData();
+        }
+
+        // --- CRUD Operations (Local Only) ---
+
+        // Save Expense
+        function saveExpense() {
+            // ... (rest of the function remains the same until newExpense object)
+
+            if (existingIndex === -1) {
+                // New record
+                const newId = `E${expenses.length}`;
+                // REMOVED device_id: appState.deviceId
+                const newExpense = { id: newId, date, value, mainType, subType, safe, synced: false }; 
+                expenses.push(newExpense);
+                showNotification('New Expense saved locally', 'success');
+            } else {
+                // Update existing record
+                expenses[existingIndex].date = date;
+                expenses[existingIndex].value = value;
+                expenses[existingIndex].mainType = mainType;
+                expenses[existingIndex].subType = subType;
+                expenses[existingIndex].safe = safe;
+                expenses[existingIndex].synced = false; // Mark as unsynced
+                showNotification('Expense updated locally', 'success');
+            }
+            
+            // ... (rest of the function remains the same)
+        }
+
+        // Save Income
+        function saveIncome() {
+            // ... (rest of the function remains the same until newIncome object)
+
+            if (existingIndex === -1) {
+                // New record
+                const newId = `I${incomes.length}`;
+                // REMOVED device_id: appState.deviceId
+                const newIncome = { id: newId, date, value, mainType, subType, safe, synced: false };
+                incomes.push(newIncome);
+                showNotification('New Income saved locally', 'success');
+            } else {
+                // Update existing record
+                incomes[existingIndex].date = date;
+                incomes[existingIndex].value = value;
+                incomes[existingIndex].mainType = mainType;
+                incomes[existingIndex].subType = subType;
+                incomes[existingIndex].safe = safe;
+                incomes[existingIndex].synced = false; // Mark as unsynced
+                showNotification('Income updated locally', 'success');
+            }
+
+            // ... (rest of the function remains the same)
+        }
+
+        // Save Transfer
+        function saveTransfer() {
+            // ... (rest of the function remains the same until newTransfer object)
+
+            if (existingIndex === -1) {
+                // New record
+                // REMOVED device_id: appState.deviceId
+                const newTransfer = { date, from: fromSafe, to: toSafe, value, synced: false };
+                transfers.push(newTransfer);
+                showNotification('New Transfer saved locally', 'success');
+            } else {
+                // Update existing record
+                transfers[existingIndex].date = date;
+                transfers[existingIndex].from = fromSafe;
+                transfers[existingIndex].to = toSafe;
+                transfers[existingIndex].value = value;
+                transfers[existingIndex].synced = false; // Mark as unsynced
+                showNotification('Transfer updated locally', 'success');
+            }
+
+            // ... (rest of the function remains the same)
+        }
+
+        // Save Safe
+        function saveSafe() {
+            // ... (rest of the function remains the same until newSafe object)
+            
+            if (existingIndex === -1) {
+                // New record
+                const newId = safes.length > 0 ? Math.max(...safes.map(s => s.id)) + 1 : 1;
+                // REMOVED device_id: appState.deviceId
+                const newSafe = { id: newId, name, balance: initialBalance, synced: false };
+                safes.push(newSafe);
+                appState.currentSafeIndex = safes.length - 1;
+                showNotification('New Safe saved locally', 'success');
+            } else {
+                // Update existing record
+                safes[existingIndex].name = name;
+                safes[existingIndex].balance = initialBalance;
+                safes[existingIndex].synced = false; // Mark as unsynced
+                showNotification('Safe updated locally', 'success');
+            }
+
+            // ... (rest of the function remains the same)
+        }
+
+        // ... (other functions: deleteExpense, deleteIncome, deleteTransfer, deleteSafe)
+
+        // --- Utility and Display Functions ---
+
+        // ... (updateBalanceDisplay, displayExpenseRecord, displayIncomeRecord, displayTransferRecord, displaySafeRecord, loadSelectOptions, loadExpenseTypes, loadIncomeTypes, loadTransfersList, loadSafesList)
+
+        // Generate PDF
+        function exportToPDF() {
+            // ... (rest of the function remains the same until PDF content generation)
+
+            // PDF content generation logic
+            const reportHTML = `
+                <div style="padding: 20px; font-family: 'Amiri', 'Segoe UI', sans-serif;">
+                    <h1 style="text-align: center; color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px;">FINANCIAL TRACKER - FULL REPORT</h1>
+                    <h4 style="text-align: center; color: #888; margin-top: 10px;">Generated on: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}</h4>
+                    <div style="margin-bottom: 30px;">
+                        <h2 style="color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 5px;">SUMMARY</h2>
+                        `;
+
+            // ... (rest of the function remains the same)
+        }
+
+        // Backup data to JSON file
+        function backupData() {
+            try {
+                const data = {
+                    safes: JSON.parse(localStorage.getItem('financialSafes') || '[]'),
+                    expenses: JSON.parse(localStorage.getItem('expenses') || '[]'),
+                    incomes: JSON.parse(localStorage.getItem('incomes') || '[]'),
+                    transfers: JSON.parse(localStorage.getItem('transfers') || '[]'),
+                    expenseTypes: JSON.parse(localStorage.getItem('expenseTypes') || '[]'),
+                    expenseSubTypes: JSON.parse(localStorage.getItem('expenseSubTypes') || '[]'),
+                    incomeTypes: JSON.parse(localStorage.getItem('incomeTypes') || '[]'),
+                    incomeSubTypes: JSON.parse(localStorage.getItem('incomeSubTypes') || '[]'),
+                    currency: localStorage.getItem('currency') || '$',
+                    // REMOVED deviceId: appState.deviceId
+                    backupDate: new Date().toISOString()
+                };
+                const dataStr = JSON.stringify(data, null, 2);
+                const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+                // ... (rest of the function remains the same)
+            } catch (error) {
+                console.error("Error generating PDF report:", error);
+                showNotification('Error generating PDF report: ' + error.message, 'error');
+            }
+        }
+
+        // ... (rest of the script remains the same)
+
+        // --- Initialization ---
+
+        function initializeApp() {
+            try {
+                // Set currency
+                appState.currency = localStorage.getItem('currency') || '$';
+                
+                initLocalStorage();
+                loadAllData();
+                setupEventListeners();
+                
+                // Initial network check and sync
+                checkNetworkStatus();
+                window.addEventListener('online', checkNetworkStatus);
+                window.addEventListener('offline', checkNetworkStatus);
+
+                // Set up periodic sync (e.g., every 60 seconds)
+                if (SUPABASE_URL !== 'YOUR_SUPABASE_URL') {
+                    setInterval(syncAllData, 60000); // 60 seconds
+                    console.log("Periodic sync enabled.");
+                } else {
+                    console.warn("Supabase credentials not set. Cloud sync disabled.");
+                    showNotification('Supabase not configured. Cloud sync is disabled.', 'warning');
+                }
+
+                // Initial load after a short delay to ensure DOM is ready
+                setTimeout(() => {
+                    syncAllData();
+                }, 3000);
+
+                console.log("Application initialized successfully");
+
+            } catch (error) {
+                console.error("Error during application initialization:", error);
+                showNotification('Application failed to initialize: ' + error.message, 'error');
+            }
+        }
+
+        // ... (rest of the script remains the same)
+    </script>
+</body>
+</html>
